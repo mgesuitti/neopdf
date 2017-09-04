@@ -1,0 +1,69 @@
+.center-text {
+    text-align: center;
+}
+
+.right-text {
+    text-align: right;    
+}
+
+.border-div {
+    border: solid 1px #000000;
+    margin-bottom: 2px;
+}
+
+h3 {
+    font-size: 14px;
+}
+
+.responsive-table {
+    width: 100%;
+}
+
+.table-article th {
+    background-color: #ccc;
+    padding: 2px;
+}
+
+.table-article{
+    font-size:10px;
+} 
+
+.table-header {
+    font-size:10px;
+}
+
+.logo {
+    width: 100px;
+}
+
+.company_name {
+    margin-top: -25px;
+}
+
+.type_voucher {
+    font-size: 16px;
+}
+
+.header_margin {
+    margin-top: 30px;
+}
+
+.letter {
+    position: absolute;
+    text-align: center;
+    left: 46%;
+    top: 71px;
+    width: 50px;
+    border: solid 1px #000000;
+    margin-top: -1px;
+}
+
+.letter p.title {
+    padding: -15px;
+    font-size: 20px;
+}
+
+.letter p.type {
+    padding: -10px;
+    font-size: 8px;
+}

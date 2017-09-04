@@ -1,0 +1,15 @@
+{
+    "name": "neocomplexx/neopdf",
+    "description": "Generador de comprobantes en PDF con el formato de factura electronica Argentina",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "NeoComplexx Group S.A.",
+            "email": "info@neocomplexx.com"
+        }
+    ],
+    "require": {
+        "spipu/html2pdf": "^5.0"
+    }
+}
