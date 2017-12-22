@@ -35,8 +35,10 @@ class PDFVoucher extends HTML2PDF {
 
         if (array_key_exists("idiomaComprobante",$voucher) && $voucher["idiomaComprobante"] == $this::LANG_EN) {
             include(__DIR__.'/language/en.php');
-            $this->lang = array_merge($this->lang, $lang);
+        } else {
+            include(__DIR__.'/language/es.php');
         }
+        $this->lang = array_merge($this->lang, $lang);
     }
 
     private function lang($key) {
