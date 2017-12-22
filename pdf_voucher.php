@@ -1,6 +1,5 @@
 <?php
 require __DIR__.'/vendor/autoload.php';
-
 use Spipu\Html2Pdf\Html2Pdf;
 
 /**
@@ -10,10 +9,12 @@ use Spipu\Html2Pdf\Html2Pdf;
  */
 class PDFVoucher extends HTML2PDF {
 
-    var $config = array();
-    var $voucher = null;
-    var $finished = false; //Determina si es la ultima pagina
-    var $html = "";
+    private $config = array();
+    private $voucher = null;
+    private $finished = false; //Determina si es la ultima pagina
+    private $html = "";
+    private $lang = array();
+    const LANG_EN = 2;
 
     function __construct($voucher, $config) {
         parent::__construct('P', 'A4', 'es');
@@ -31,6 +32,19 @@ class PDFVoucher extends HTML2PDF {
         $css = fread($cssfile, filesize(dirname(__FILE__) . "/voucher.css"));
         fclose($cssfile);
         $this->html = "<style>" . $css . "</style>";
+
+        if (array_key_exists("idiomaComprobante",$voucher) && $voucher["idiomaComprobante"] == $this::LANG_EN) {
+            include(__DIR__.'/language/en.php');
+            $this->lang = array_merge($this->lang, $lang);
+        }
+    }
+
+    private function lang($key) {
+        if (array_key_exists($key,$this->lang)) {
+            return $this->lang[$key];
+        } else {
+            return $key;
+        }
     }
 
     /**
@@ -49,11 +63,11 @@ class PDFVoucher extends HTML2PDF {
                 $this->html .= "<div class='border-div'>";
             }
 
-            $type = $this->voucher["TipoComprobante"];
+            $type = $this->lang($this->voucher["TipoComprobante"]);
             $letter = $this->voucher["letra"];
-            $number = "Punto de venta: " . str_pad($this->voucher["numeroPuntoVenta"], 4, "0", STR_PAD_LEFT) . "   " . "Comp. Nro: " . str_pad($this->voucher["numeroComprobante"], 8, "0", STR_PAD_LEFT);
-            $tmp = str_replace("-", "", $this->voucher["fechaEmision"]);
-            $date = "Fecha de emisi&oacute;n: " . substr($tmp, 6, 2) . "/" . substr($tmp, 4, 2) . "/" . substr($tmp, 0, 4);
+            $number = $this->lang("Punto de venta") . ": " . str_pad($this->voucher["numeroPuntoVenta"], 4, "0", STR_PAD_LEFT) . "   " . $this->lang("Comp. Nro") . ": " . str_pad($this->voucher["numeroComprobante"], 8, "0", STR_PAD_LEFT);
+            $tmp = DateTime::createFromFormat('Ymd',$this->voucher["fechaComprobante"]);
+            $date = $this->lang("Fecha de emisi&oacute;n") . ": " . date_format($tmp, $this->lang('d/m/Y'));
 
             $this->html .= "    <div class='letter'>";
             $this->html .= "        <p class='title'>$letter</p> ";
@@ -73,16 +87,16 @@ class PDFVoucher extends HTML2PDF {
             $this->html .= "    <span class='header_margin'>$number</span><br>";
             $this->html .= "    <span class='header_margin'>$date</span>";
             if ($this->voucher["codigoConcepto"] == 2 || $this->voucher["codigoConcepto"] == 3) {
-              $tmp = str_replace("-", "", $this->voucher["fechaDesde"]);
-              $service_from = "Per&iacute;odo: " . substr($tmp, 6, 2) . "/" . substr($tmp, 4, 2) . "/" . substr($tmp, 0, 4);
-              $tmp = str_replace("-", "", $this->voucher["fechaHasta"]);
-              $service_to = "al " . substr($tmp, 6, 2) . "/" . substr($tmp, 4, 2) . "/" . substr($tmp, 0, 4);
-              $tmp = str_replace("-", "", $this->voucher["fechaVtoPago"]);
-              $expiration = "- Vencimiento: " . substr($tmp, 6, 2) . "/" . substr($tmp, 4, 2) . "/" . substr($tmp, 0, 4);
-              $this->html .= "<br>";
-              $this->html .= "    <span class='header_margin'>$service_from</span>";
-              $this->html .= "    <span class='header_margin'>$service_to</span>";
-              $this->html .= "    <span class='header_margin'>$expiration</span>";
+                $tmp = DateTime::createFromFormat('Ymd',$this->voucher["fechaDesde"]);
+                $service_from = $this->lang("Per&iacute;odo") . ": " . date_format($tmp, $this->lang('d/m/Y'));
+                $tmp = DateTime::createFromFormat('Ymd',$this->voucher["fechaHasta"]);
+                $service_to = $this->lang("al") . " " . date_format($tmp, $this->lang('d/m/Y'));
+                $tmp = DateTime::createFromFormat('Ymd',$this->voucher["fechaVtoPago"]);
+                $expiration = "- " . $this->lang("Vencimiento") . ": " . date_format($tmp, $this->lang('d/m/Y'));
+                $this->html .= "<br>";
+                $this->html .= "    <span class='header_margin'>$service_from</span>";
+                $this->html .= "    <span class='header_margin'>$service_to</span>";
+                $this->html .= "    <span class='header_margin'>$expiration</span>";
             }
 
             $this->html .= "</td>";
@@ -91,16 +105,17 @@ class PDFVoucher extends HTML2PDF {
 
             $this->html .= "<table class='responsive-table table-header'>";
             $this->html .= "<tr>";
-            $this->html .= "<td style='width:50%;'>Raz&oacute;n social: " . strtoupper($this->config["TRADE_SOCIAL_REASON"]) . "</td>";
-            $this->html .= "<td class='right-text' style='width:49%;'>CUIT: " . $this->config["TRADE_CUIT"] . "</td>";
+            $this->html .= "<td style='width:50%;'>" . $this->lang("Raz&oacute;n social") . ": " . strtoupper($this->config["TRADE_SOCIAL_REASON"]) . "</td>";
+            $this->html .= "<td class='right-text' style='width:49%;'>" . $this->lang("CUIT") . ": " . $this->config["TRADE_CUIT"] . "</td>";
             $this->html .= "</tr>";
             $this->html .= "<tr>";
-            $this->html .= "<td style='width:50%;'>Domicilio comercial: " . strtoupper($this->config["TRADE_ADDRESS"]) . "</td>";
-            $this->html .= "<td class='right-text' style='width:49%;'>Ingresos Brutos: " . $this->config["TRADE_CUIT"] . "</td>";
+            $this->html .= "<td style='width:50%;'>" . $this->lang("Domicilio comercial") . ": " . strtoupper($this->config["TRADE_ADDRESS"]) . "</td>";
+            $this->html .= "<td class='right-text' style='width:49%;'>" . $this->lang("Ingresos Brutos") . ": " . $this->config["TRADE_CUIT"] . "</td>";
             $this->html .= "</tr>";
             $this->html .= "<tr>";
-            $this->html .= "<td style='width:50%;'>Condición frente al IVA: " . strtoupper($this->config["TRADE_TAX_CONDITION"]) . "</td>";
-            $this->html .= "<td class='right-text' style='width:49%;'>Fecha de inicio de actividades: " . $this->config["TRADE_INIT_ACTIVITY"] . "</td>";
+            $this->html .= "<td style='width:50%;'>" . $this->lang("Condici&oacute;n frente al IVA") . ": " . strtoupper($this->config["TRADE_TAX_CONDITION"]) . "</td>";
+            $tmp = DateTime::createFromFormat('d/m/Y',$this->config["TRADE_INIT_ACTIVITY"]);
+            $this->html .= "<td class='right-text' style='width:49%;'>" . $this->lang("Fecha de inicio de actividades") . ": " . date_format($tmp, $this->lang('d/m/Y')) . "</td>";
             $this->html .= "</tr>";
             $this->html .= "</table>";
             $this->html .= "</div>";
@@ -117,19 +132,19 @@ class PDFVoucher extends HTML2PDF {
             $this->html .= "<div class='border-div'>";
             $this->html .= "<table class='responsive-table table-header'>";
             $this->html .= "<tr>";
-            $text = $this->voucher["TipoDocumento"] . ": " . $this->voucher["numeroDocumento"];
+            $text = $this->lang($this->voucher["TipoDocumento"]) . ": " . $this->voucher["numeroDocumento"];
             $this->html .= "<td style='width:50%;'>" . $text . "</td>";
-            $text = "Apellido y Nombre / Raz&oacute;n Social: " . strtoupper($this->voucher["nombreCliente"]);
+            $text = $this->lang("Apellido y Nombre / Raz&oacute;n Social") . ": " . strtoupper($this->voucher["nombreCliente"]);
             $this->html .= "<td class='right-text' style='width:49%;'>" . $text . "</td>";
             $this->html .= "</tr>";
             $this->html .= "<tr>";
-            $text = "Condici&oacute;n frente al IVA: " . $this->voucher["tipoResponsable"];
+            $text = $this->lang("Condici&oacute;n frente al IVA") . ": " . $this->lang($this->voucher["tipoResponsable"]);
             $this->html .= "<td style='width:50%;'>" . $text . "</td>";
-            $text = "Domicilio: " . $this->voucher["domicilioCliente"];
+            $text = $this->lang("Domicilio") . ": " . $this->voucher["domicilioCliente"];
             $this->html .= "<td class='right-text' style='width:49%;'>" . $text . "</td>";
             $this->html .= "</tr>";
             $this->html .= "<tr>";
-            $text = "Condici&oacute;nes de venta: " . $this->voucher["CondicionVenta"];
+            $text = $this->lang("Condici&oacute;nes de venta") . ": " . $this->lang($this->voucher["CondicionVenta"]);
             $this->html .= "<td style='width:10%;'>" . $text . "</td>";
             $this->html .= "</tr>";
             $this->html .= "</table>";
@@ -155,18 +170,20 @@ class PDFVoucher extends HTML2PDF {
 
     /**
      * Imprime el detalle para comprobantes tipo A
+     * 
+     * @author NeoComplexx Group S.A.
      */
     function fill_A() {
         $this->html .= "<tr>";
-        $this->html .= "<th class='center-text' style='width=10%;'>C&oacute;digo</th>";
-        $this->html .= "<th style='width=26%;'>Producto / Servicio</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Cantidad</th>";
-        $this->html .= "<th style='width=10%;'>U. Medida</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Precio unit.</th>";
-        $this->html .= "<th class='right-text' style='width=8%;'>% Bonif</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Imp. Bonif.</th>";
-        $this->html .= "<th class='right-text' style='width=6%;'>IVA</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Subtotal</th>";
+        $this->html .= "<th class='center-text' style='width=10%;'>" . $this->lang("C&oacute;digo") . "</th>";
+        $this->html .= "<th style='width=26%;'>" . $this->lang("Producto / Servicio") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Cantidad") . "</th>";
+        $this->html .= "<th style='width=10%;'>" . $this->lang("U. Medida") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Precio unit.") . "</th>";
+        $this->html .= "<th class='right-text' style='width=8%;'>" . $this->lang("% Bonif") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Imp. Bonif.") . "</th>";
+        $this->html .= "<th class='right-text' style='width=6%;'>" . $this->lang("IVA") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Subtotal") . "</th>";
         $this->html .= "</tr>";
         foreach ($this->voucher["items"] as $item) {
             $this->html .= "<tr>";
@@ -189,17 +206,19 @@ class PDFVoucher extends HTML2PDF {
 
     /**
      * Imprime el detalle para comprobantes tipo B
+     * 
+     * @author NeoComplexx Group S.A.
      */
     function fill_B() {
         $this->html .= "<tr>";
-        $this->html .= "<th class='center-text' style='width=10%;'>C&oacute;digo</th>";
-        $this->html .= "<th style='width=30%;'>Producto / Servicio</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Cantidad</th>";
-        $this->html .= "<th style='width=10%;'>U. Medida</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Precio unit.</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>% Bonif</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Imp. Bonif.</th>";
-        $this->html .= "<th class='right-text' style='width=10%;'>Subtotal</th>";
+        $this->html .= "<th class='center-text' style='width=10%;'>" . $this->lang("C&oacute;digo") . "</th>";
+        $this->html .= "<th style='width=30%;'>" . $this->lang("Producto / Servicio") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Cantidad") . "</th>";
+        $this->html .= "<th style='width=10%;'>" . $this->lang("U. Medida") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Precio unit.") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("% Bonif") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Imp. Bonif.") . "</th>";
+        $this->html .= "<th class='right-text' style='width=10%;'>" . $this->lang("Subtotal") . "</th>";
         $this->html .= "</tr>";
         foreach ($this->voucher["items"] as $item) {
             $this->html .= "<tr>";
@@ -210,7 +229,7 @@ class PDFVoucher extends HTML2PDF {
             }
             $this->html .= "<td style='width=30%;'>" . $item["descripcion"] . "</td>";
             $this->html .= "<td class='right-text' style='width=10%;'>" . number_format($item["cantidad"], 3) . "</td>";
-            $this->html .= "<td style='width=10%;'>" . $item["UnidadMedida"] . "</td>";
+            $this->html .= "<td style='width=10%;'>" . $this->lang($item["UnidadMedida"]) . "</td>";
             $this->html .= "<td class='right-text' style='width=10%;'>" . number_format($item["precioUnitario"], 2) . "</td>";
             $this->html .= "<td class='right-text' style='width=10%;'>" . number_format($item["porcBonif"], 2) . "</td>";
             $this->html .= "<td class='right-text' style='width=10%;'>" . number_format($item["impBonif"], 2) . "</td>";
@@ -271,8 +290,8 @@ class PDFVoucher extends HTML2PDF {
             $str .= '            <th class="center-text" colspan=2 style="width=240px;">Otros tributos</th>';
             $str .= '        </tr>';
             $str .= '        <tr>';
-            $str .= '            <th class="center-text" style="width=200px;">Descripci&oacute;n</th>';
-            $str .= '            <th class="center-text" style="width=40px;">Importe</th>';
+            $str .= '            <th class="center-text" style="width=200px;">' . $this->lang("Descripci&oacute;n") . '</th>';
+            $str .= '            <th class="center-text" style="width=40px;">' . $this->lang("Importe") . '</th>';
             $str .= '        </tr>';
 
             foreach ($this->voucher['Tributos'] as $tax) {
@@ -282,10 +301,9 @@ class PDFVoucher extends HTML2PDF {
                 $str .= '        </tr>';
             }
 
-
             //Footer
             $str .= '        <tr>';
-            $str .= '            <td class="right-text" style="width=200px;">Importe otros tributos: $</td>';
+            $str .= '            <td class="right-text" style="width=200px;">' . $this->lang("Importe otros tributos") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
             $total = number_format((float) round($this->voucher["importeOtrosTributos"], 2), 2, '.', '');
             $str .= '            <td class="right-text" style="width=40px;">' . $total . '</td>';
             $str .= '        </tr>';
@@ -306,13 +324,13 @@ class PDFVoucher extends HTML2PDF {
 
         //Detail
         $str .= '        <tr>';
-        $str .= '            <td class="right-text" style="width=200px;">Importe neto gravado: $</td>';
+        $str .= '            <td class="right-text" style="width=200px;">' . $this->lang("Importe neto gravado") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $importeGravado = number_format((float) round($this->voucher["importeGravado"], 2), 2, '.', '');
         $str .= '            <td class="right-text" style="width=70px;">' . $importeGravado . '</td>';
         $str .= '        </tr>';
         foreach ($this->voucher["subtotivas"] as $iva) {
             $value = $iva["Alic"];
-            $descripcion = "IVA $value%: $ ";
+            $descripcion = "IVA $value%: " . $this->lang($this->voucher["codigoMoneda"]);
             $importe = number_format((float) round($iva["importe"], 2), 2, '.', '');
             $str .= '        <tr>';
             $str .= '            <td class="right-text" style="width=200px;">' . $descripcion . '</td>';
@@ -322,12 +340,12 @@ class PDFVoucher extends HTML2PDF {
 
         //Footer
         $str .= '        <tr>';
-        $str .= '            <td class="right-text" style="width=200px;">Importe otros tributos: $</td>';
+        $str .= '            <td class="right-text" style="width=200px;">' . $this->lang("Importe otros tributos") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $importeOtrosTributos = number_format((float) round($this->voucher["importeOtrosTributos"], 2), 2, '.', '');
         $str .= '            <td class="right-text" style="width=70px;">' . $importeOtrosTributos . '</td>';
         $str .= '        </tr>';
         $str .= '        <tr>';
-        $str .= '            <td class="right-text" style="width=200px;">Importe total: $</td>';
+        $str .= '            <td class="right-text" style="width=200px;">' . $this->lang("Importe total") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $importeTotal = number_format((float) round($this->voucher["importeTotal"], 2), 2, '.', '');
         $str .= '            <td class="right-text" style="width=70px;">' . $importeTotal . '</td>';
         $str .= '        </tr>';
@@ -340,22 +358,21 @@ class PDFVoucher extends HTML2PDF {
      * Imprime la linea de totales para comprobantes con letra B
      *
      * @author: NeoComplexx Group S.A.
-     *
      */
     private function total_line_B() {
         $this->html .= '    <table class="responsive-table">';
         $this->html .= '        <tr>';
-        $this->html .= '		<td class="right-text" style="width: 75%;">Subtotal: $ </td>';
+        $this->html .= '		<td class="right-text" style="width: 75%;">' . $this->lang("Subtotal") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $text = number_format((float) round($this->voucher["importeTotal"], 2), 2, '.', '');
         $this->html .= '		<td class="right-text" style="width: 25%;">' . $text . '</td>';
         $this->html .= '        </tr>';
         $this->html .= '        <tr>';
-        $this->html .= '		<td class="right-text" style="width: 75%;">Importe otros tributos: $ </td>';
+        $this->html .= '		<td class="right-text" style="width: 75%;">' . $this->lang("Importe otros tributos") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $text = number_format((float) round($this->voucher["importeOtrosTributos"], 2), 2, '.', '');
         $this->html .= '		<td class="right-text" style="width: 25%;">' . $text . '</td>';
         $this->html .= '        </tr>';
         $this->html .= '        <tr>';
-        $this->html .= '		<td class="right-text" style="width: 75%;">Importe Total: $ </td>';
+        $this->html .= '		<td class="right-text" style="width: 75%;">' . $this->lang("Importe total") . ': '. $this->lang($this->voucher["codigoMoneda"]) .'</td>';
         $text = number_format((float) round($this->voucher["importeTotal"], 2), 2, '.', '');
         $this->html .= '		<td class="right-text" style="width: 25%;">' . $text . '</td>';
         $this->html .= '        </tr>';
@@ -385,30 +402,35 @@ class PDFVoucher extends HTML2PDF {
             $this->extra_line();
             $this->html .= '    <table class="responsive-table page_footer">';
             if ($this->voucher["cae"] != 0) {
-                $text_left = 'Comprobante Autorizado';
-                $text_1 = "CAE: ";
+                $text_left = $this->lang("Comprobante Autorizado");
+                $text_1 = $this->lang("CAE") .": ";
                 $text_2 = $this->voucher["cae"];
-                $text_3 = "Fecha Vto. CAE: ";
-                $tmp = str_replace("-", "", $this->voucher["fechaVencimientoCAE"]);
-                $text_4 = substr($tmp, 6, 2) . "/" . substr($tmp, 4, 2) . "/" . substr($tmp, 0, 4);
+                $text_3 = $this->lang("Fecha Vto. CAE") .": ";
+            
+                $tmp = DateTime::createFromFormat('Y-m-d',$this->voucher["fechaVencimientoCAE"]);
+                $text_4 = date_format($tmp, $this->lang('d/m/Y'));
+
+                $quotation = number_format((float) round($this->voucher["cotizacionMoneda"], 2), 2, '.', '');
+                $text_5 = $this->lang("Moneda") . ": " . $this->lang($this->voucher["codigoMoneda"]) . " | " . $this->lang("Cotizaci&oacute;n") . ": " . $quotation;
             } else {
-                $text_left = "Documento no v&aacute;lido como factura";
+                $text_left = $this->lang("Documento no v&aacute;lido como factura");
                 $text_1 = "&nbsp;";
                 $text_2 = "&nbsp;";
                 $text_3 = "&nbsp;";
                 $text_4 = "&nbsp;";
+                $text_5 = "&nbsp;";
             }
             $this->html .= '        <tr>';
             $this->html .= '		<td class="" style="width: 30%;">' . $text_left . "</td>";
             $this->html .= '		<td class="center-text" style="width: 40%;">';
-            $this->html .= '                Pag. [[page_cu]]/[[page_nb]]';
+            $this->html .= '                ' . $this->lang("Pag.") . ' [[page_cu]]/[[page_nb]]';
             $this->html .= '		</td>';
             $this->html .= '		<td class="right-text" style="width: 15%;">' . $text_1 . "</td>";
             $this->html .= '		<td class="left-text" style="width: 15%;">' . $text_2 . "</td>";
             $this->html .= '        </tr>';
 
             $this->html .= '        <tr>';
-            $this->html .= '		<td class="" style="width: 30%;">&nbsp;</td>';
+            $this->html .= '		<td class="" style="width: 30%;">' . $text_5 . "</td>";
             $this->html .= '		<td class="center-text" style="width: 40%;">&nbsp;</td>';
             $this->html .= '		<td class="right-text" style="width: 15%;">' . $text_3 . "</td>";
             $this->html .= '		<td class="left-text" style="width: 15%;">' . $text_4 . "</td>";
@@ -435,6 +457,8 @@ class PDFVoucher extends HTML2PDF {
     /**
      * Determina si mostrar o no una parte del comprobante
      * @param element TAG del elemento a controlar
+     * 
+     * @author NeoComplexx Group S.A.
      */
     private function show_element($element) {
         if (array_key_exists("VOUCHER_CONFIG", $this->config) && array_key_exists($element, $this->config["VOUCHER_CONFIG"])) {
@@ -448,18 +472,20 @@ class PDFVoucher extends HTML2PDF {
      * Genera un comprobante de AFIP con su correspondiente original/duplicado
      *
      * @param type $logo_path Ubicación de la imágen del logo
+     * 
+     * @author NeoComplexx Group S.A.
      */
     function emitirPDF($logo_path) {
         //ORIGINAL
         $this->html .= "<page>";
-        $this->addVoucherInformation($logo_path, "ORIGINAL");
+        $this->addVoucherInformation($logo_path, $this->lang("ORIGINAL"));
         $this->addReceiverInformation();
         $this->fill();
         $this->footer();
         $this->html .= "</page>";
         $this->html .= "<page>";
         //DUPLICADO
-        $this->addVoucherInformation($logo_path, "DUPLICADO");
+        $this->addVoucherInformation($logo_path, $this->lang("DUPLICADO"));
         $this->addReceiverInformation();
         $this->fill();
         $this->footer();
