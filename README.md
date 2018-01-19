@@ -1,5 +1,10 @@
 # neopdf
+
+Foro oficial para consultas o sugerencias: https://groups.google.com/forum/#!forum/neofactura
+
 Generador de comprobantes en PDF con el formato de factura electrónica Argentina (AFIP)
+
+Última incorporación: Posibilidad de agregar traducciones, incluido hasta el momento Ingles y Español.
 
 ¿Cómo comenzar a utilizarlo?
 
